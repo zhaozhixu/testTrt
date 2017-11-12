@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-/* #include <cuda_runtime.h> */
-/* #include <helper_functions.h> */
-/* #include <helper_cuda.h> */
+#include "tensorCuda.h"
 
 #define MAXDIM 8
 
@@ -16,6 +14,7 @@ typedef struct {
 } Tensor;
 
 int computeLength(int *dims, int ndim);
-Tensor createTensor(float *data, int ndim, int *dims);
+Tensor *createTensor(float *data, int ndim, int *dims);
 int printTensor(Tensor *tensor, const char *fmt);
-void sliceTensor(Tensor *src, Tensor *dst, int dim, int start, int len);
+Tensor *sliceTensor(Tensor *src, int dim, int start, int len);
+Tensor *sliceTensorCuda(Tensor *src, int dim, int start, int len);

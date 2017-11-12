@@ -16,13 +16,13 @@ int computeLength(int *dims, int ndim)
      return len;
 }
 
-Tensor createTensor(float *data, int ndim, int *dims)
+Tensor *createTensor(float *data, int ndim, int *dims)
 {
-     Tensor t;
-     t.data = data;
-     t.ndim = ndim;
-     t.dims = dims;
-     t.len = computeLength(dims, ndim);
+     Tensor *t = (Tensor *)malloc(sizeof(Tensor));
+     t->data = data;
+     t->ndim = ndim;
+     t->dims = dims;
+     t->len = computeLength(dims, ndim);
      return t;
 }
 
@@ -66,7 +66,6 @@ int printTensor(Tensor *tensor, const char *fmt)
                right_len = strlen(right_buf);
                for (k = ndim-right_len; k > 0; k--)
                     putchar(' ');
-
           }
           printf("%s", left_buf);
           if (*left_buf == '\0')
@@ -75,34 +74,64 @@ int printTensor(Tensor *tensor, const char *fmt)
           lp = left_buf, rp = right_buf;
      }
      for (j = 0; j < ndim; j++)
-          printf("]");
+          putchar(']');
      putchar('\n');
 }
 
-void sliceTensor(Tensor *src, Tensor *dst, int dim, int start, int len)
+Tensor *sliceTensor(Tensor *src, int dim, int start, int len)
 {
      assertTensor(src);
      assert(dim <= MAXDIM);
      assert(len+start <= src->dims[dim]);
 
-     dst = (Tensor *)malloc(sizeof(src));
+     Tensor *dst = (Tensor *)malloc(sizeof(Tensor));
+     dst->ndim = src->ndim;
+     dst->dims = (int *)malloc(sizeof(int) * dst->ndim);
+     memmove(dst->dims, src->dims, sizeof(int) * dst->ndim);
+     dst->dims[dim] = len;
      dst->len = src->len / src->dims[dim] * len;
      dst->data = (float *)malloc(dst->len * sizeof(float));
 
-     int i, block_size = 1, block_num = 1;
-     for (i = dim+1; i < src->ndim; i++)
+     int i, block_size, s_block_num, d_block_num;
+     for (i = dim+1, block_size = 1; i < src->ndim; i++)
           block_size *= src->dims[i];
-     for (i = 0; i <= dim; i++)
-          block_num *= src->dims[i];
+     for (i = 0, s_block_num = 1; i <= dim; i++)
+          s_block_num *= src->dims[i];
+     d_block_num = s_block_num / src->dims[dim] * len;
 
-     fprintf(stderr, "%d\n", block_size);
-     fprintf(stderr, "%d\n", block_num);
-     int skip_len = src->dims[dim] - len;
-     float *dstp = dst->data, *srcp = src->data;
-     for (i = 0; i < block_num; i++, srcp += block_size) {
-          if (i % src->dims[dim] < skip_len)
-               continue;
-          memmove(dstp, srcp, block_size);
-          dstp += block_size;
+     int index;
+     float *dp = dst->data, *sp = src->data;
+     size_t floats_size = block_size * sizeof(float);
+     for (i = 0; i < d_block_num; i++) {
+          index = i / len * src->dims[dim] + i % len + start;
+          memmove(dp+i*block_size, sp+index*block_size, floats_size);
      }
+
+     return dst;
+}
+
+Tensor *sliceTensorCuda(Tensor *src, int dim, int start, int len)
+{
+     assertTensor(src);
+     assert(dim <= MAXDIM);
+     assert(len+start <= src->dims[dim]);
+
+     Tensor *dst = (Tensor *)malloc(sizeof(Tensor));
+     dst->ndim = src->ndim;
+     dst->dims = (int *)malloc(sizeof(int) * dst->ndim);
+     memmove(dst->dims, src->dims, sizeof(int) * dst->ndim);
+     dst->dims[dim] = len;
+     dst->len = src->len / src->dims[dim] * len;
+     dst->data = (float *)malloc(dst->len * sizeof(float));
+
+     int i, block_size, s_block_num, d_block_num;
+     for (i = dim+1, block_size = 1; i < src->ndim; i++)
+          block_size *= src->dims[i];
+     for (i = 0, s_block_num = 1; i <= dim; i++)
+          s_block_num *= src->dims[i];
+     d_block_num = s_block_num / src->dims[dim] * len;
+
+     sliceTensorHost(src->data, dst->data, start, len, src->dims[dim], block_size, d_block_num);
+
+     return dst;
 }
