@@ -13,8 +13,10 @@ typedef struct {
      float *data;
 } Tensor;
 
-int computeLength(int *dims, int ndim);
+int computeLength(int ndim, int *dims);
 Tensor *createTensor(float *data, int ndim, int *dims);
-int printTensor(Tensor *tensor, const char *fmt);
+void printTensor(Tensor *tensor, const char *fmt);
 Tensor *sliceTensor(Tensor *src, int dim, int start, int len);
 Tensor *sliceTensorCuda(Tensor *src, int dim, int start, int len);
+Tensor *reshapeTensor(Tensor *src, int newNdim, int *newDims);
+void reduceArgMax(Tensor *src, Tensor **dst, Tensor **arg, int dim);

@@ -193,7 +193,6 @@ int main(int argc, char** argv)
 
 	IExecutionContext *context = engine->createExecutionContext();
 
-
 	// host memory for outputs
 	float* output = new float[N * OUTPUT_SIZE];
 

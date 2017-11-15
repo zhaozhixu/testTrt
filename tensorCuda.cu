@@ -1,17 +1,25 @@
 #include "tensorCuda.h"
-/* #include "common.h" */
 
-__global__ void sliceTensorKernel(float *src, float *dst, int start, int len, int s_len, int block_size, int d_block_num)
+__global__ void sliceTensorKernel(float *dst, float *src, int ddim, int sdim, int start, int block_size)
 {
-     int i = threadIdx.x;
-     int index = i / len * s_len + i % len + start;
-     cudaMemcpy(dst + i * block_size, src + index * block_size, block_size*sizeof(float), cudaMemcpyDeviceToDevice);
+     int di = blockIdx.x * block_size + threadIdx.x;
+     int si = (blockIdx.x / ddim * sdim + blockIdx.x % ddim + start) * block_size + threadIdx.x;
+     dst[di] = src[si];
 }
 
-void sliceTensorHost(float *src, float *dst, int start, int len, int s_len, int block_size, int d_block_num)
+__global__ void reduceArgMaxKernel(float *src, float *dst, float *arg, int dim_size, int block_size)
 {
-     int cuda_block_num = d_block_num / MAX_THREADS_PER_BLOCK + 1;
-     dim3 threads_per_block(MAX_THREADS_PER_BLOCK);
-     sliceTensorKernel<<<cuda_block_num, threads_per_block>>>(src, dst, start, len, s_len, block_size, d_block_num);
-     /* CHECK(error); */
+     int di = blockIdx.x * block_size + threadIdx.x;
+     int si = di * dim_size;
+     float now = src[si], max = now;
+     int maxi = 0;
+     for (int i = 1; i < dim_size; i++) {
+          now = src[si+i];
+          if (now > max) {
+               max = now;
+               maxi = i;
+          }
+     }
+     dst[di] = max;
+     arg[di] = maxi;
 }
