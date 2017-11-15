@@ -15,6 +15,42 @@ static void assertShapeEqual(int ndim1, int *dims1, int ndim2, int *dims2)
           assert(dims1[ndim1] == dims2[ndim1]);
 }
 
+void *cloneMem(void *src, size_t size, const CloneKind kind)
+{
+     assert(src && kind);
+     void *p;
+     switch (kind) {
+     case H2H:
+          p = malloc(size);
+          assert(p);
+          memmove(p, src, size);
+          return p;
+          break;
+     case H2D:
+          cudaMalloc(&p, size);
+          assert(p);
+          cudaMemcpy(p, src, size, cudaMemcpyHostToDevice);
+          return p;
+          break;
+     case D2D:
+          cudaMalloc(&p, size);
+          assert(p);
+          cudaMemcpy(p, src, size, cudaMemcpyDeviceToDevice);
+          return p;
+          break;
+     case D2H:
+          p = malloc(size);
+          assert(p);
+          cudaMemcpy(p, src, size, cudaMemcpyDeviceToHost);
+          return p;
+          break;
+     default:
+          fprintf(stderr, "unknown CloneKind %d\n", kind);
+          return NULL;
+     }
+
+}
+
 int computeLength(int ndim, int *dims)
 {
      assert(dims);
@@ -119,7 +155,7 @@ Tensor *sliceTensor(Tensor *src, int dim, int start, int len)
      return dst;
 }
 
-void sliceTensorCuda(Tensor *src, Tensor *dst, int dim, int start, int len)
+void *sliceTensorCuda(Tensor *src, Tensor *dst, int dim, int start, int len)
 {
      assertTensor(src);
      assertTensor(dst);
@@ -127,13 +163,13 @@ void sliceTensorCuda(Tensor *src, Tensor *dst, int dim, int start, int len)
      for (int i = 0; i < dst->ndim; i++)
           assert(i == dim ? dst->dims[i] == len : dst->dims[i] == src->dims[i]);
 
-     Tensor *dst = (Tensor *)malloc(sizeof(Tensor)); /* new tensor */
-     dst->ndim = src->ndim;
-     dst->dims = (int *)malloc(sizeof(int) * dst->ndim);
-     memmove(dst->dims, src->dims, sizeof(int) * dst->ndim);
-     dst->dims[dim] = len;
-     dst->len = src->len / src->dims[dim] * len;
-     cudaMalloc(&dst->data, sizeof(float) * dst->len);
+     /* Tensor *dst = (Tensor *)malloc(sizeof(Tensor)); /\* new tensor *\/ */
+     /* dst->ndim = src->ndim; */
+     /* dst->dims = (int *)malloc(sizeof(int) * dst->ndim); */
+     /* memmove(dst->dims, src->dims, sizeof(int) * dst->ndim); */
+     /* dst->dims[dim] = len; */
+     /* dst->len = src->len / src->dims[dim] * len; */
+     /* cudaMalloc(&dst->data, sizeof(float) * dst->len); */
 
      int i, block_size, block_num; /* block size and number of cuda threads */
      int ddim = dst->dims[dim], sdim = src->dims[dim];

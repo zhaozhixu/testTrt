@@ -39,16 +39,16 @@ void testSliceTensor()
      end = clock();
      /* printTensor(st, "%.2f"); */
      printf("sliceTensor in %ld\n", end - start);
-     float *tcuda_data;
-     cudaMalloc(&tcuda_data, sizeof(float) * t->len);
-     cudaMemcpy(tcuda_data, t->data, sizeof(float) * t->len, cudaMemcpyHostToDevice);
+     float *tcuda_data = (float *)cloneMem(t->data, sizeof(float) * t->len, H2D);
      Tensor *tcuda = createTensor(tcuda_data, t->ndim, t->dims);
 
+     float *stcuda_data;
+     cudaMalloc(&stcuda_data, sizeof(float) * t->len);
+     Tensor *stcuda = createTensor(stcuda_data, t->ndim, t->dims);
      start = clock();
-     Tensor *stcuda = sliceTensorCuda(tcuda, 2, 2, 1800);
+     sliceTensorCuda(tcuda, stcuda, 2, 2, 1800);
      end = clock();
-     float *sthost_data = (float *)malloc(stcuda->len * sizeof(float));
-     cudaMemcpy(sthost_data, stcuda->data, sizeof(float) * stcuda->len, cudaMemcpyDeviceToHost);
+     float *sthost_data = (float *)cloneMem(stcuda->data, stcuda->len * sizeof(float), D2H);
      Tensor *sthost = createTensor(sthost_data, stcuda->ndim, stcuda->dims);
      /* printTensor(sthost, "%.2f"); */
      printf("sliceTensorCuda in %ld\n", end - start);
@@ -95,5 +95,5 @@ int main(int argc, char *argv[])
 {
      init();
      testSliceTensor();
-     testReduceArgMax();
+     /* testReduceArgMax(); */
 }
