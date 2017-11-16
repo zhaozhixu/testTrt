@@ -8,11 +8,14 @@ static void assertTensor(const Tensor *tensor)
      assert(tensor->len == computeLength(tensor->ndim, tensor->dims));
 }
 
-int isShapeEqual(int ndim1, const int *dims1, int ndim2, const int *dims2)
+int isShapeEqual(const Tensor *t1, const Tensor *t2)
 {
-     if (ndim1 == ndim2) {
-          while (--ndim1 >= 0)
-               if (dims1[ndim1] != dims2[ndim1])
+     assertTensor(t1);
+     assertTensor(t2);
+     if (t1->ndim == t2->ndim) {
+          int ndim = t1->ndim;
+          while (--ndim >= 0)
+               if (t1->dims[ndim] != t2->dims[ndim])
                     return 0;
           return 1;
      }
@@ -21,7 +24,7 @@ int isShapeEqual(int ndim1, const int *dims1, int ndim2, const int *dims2)
 
 void *cloneMem(const void *src, size_t size, CloneKind kind)
 {
-     assert(src && kind);
+     assert(src);
      void *p;
      switch (kind) {
      case H2H:
@@ -197,7 +200,6 @@ void *sliceTensorCuda(const Tensor *src, Tensor *dst, int dim, int start, int le
           block_num *= dst->dims[i];
 
      sliceTensorKernel<<<block_num, block_size>>>(src->data, dst->data, sdim, ddim, start, block_size);
-
      return dst;
 }
 
@@ -246,17 +248,13 @@ void *reduceArgMax(const Tensor *src, Tensor *dst, Tensor *arg, int dim)
      block_num = thread_num / block_size + 1;
 
      reduceArgMaxKernel<<<block_num, block_size>>>(src->data, dst->data, arg->data, src->dims[dim], block_size);
-
      return dst;
 }
 
 Tensor *multiplyElement(const Tensor *src1, const Tensor *src2, Tensor *dst)
 {
-     assertTensor(src1);
-     assertTensor(src2);
-     assertTensor(dst);
-     assert(isShapeEqual(src1->ndim, src1->dims, src2->ndim, src2->dims));
-     assert(isShapeEqual(src1->ndim, src1->dims, dst->ndim, dst->dims));
+     assert(isShapeEqual(src1, src2));
+     assert(isShapeEqual(src1, dst));
 
      int thread_num, block_size, block_num;
      thread_num = dst->len;
@@ -264,6 +262,22 @@ Tensor *multiplyElement(const Tensor *src1, const Tensor *src2, Tensor *dst)
      block_num = thread_num / block_size + 1;
 
      multiplyElementKernel<<<block_num, block_size>>>(src1->data, src2->data, dst->data, block_size);
-
      return dst;
+}
+
+/* transform from bbox delta to bbox coordinates, using hyper param EXP_THRESH = 1.0 */
+Tensor *transformBboxSQD(const Tensor *delta, const Tensor *anchor, Tensor *res)
+{
+     assert(isShapeEqual(delta, anchor));
+     assert(isShapeEqual(delta, res));
+     assert(delta->dims[delta->ndim-1] == 4);
+
+     int i, thread_num, block_size, block_num;
+     for (i = 0, thread_num = 1; i < res->ndim-1; i++)
+          thread_num *= res->dims[i];
+     block_size = MAX_THREADS_PER_BLOCK;
+     block_num = thread_num / block_size + 1;
+
+     transformBboxSQDKernel<<<block_num, block_size>>>(delta->data, anchor->data, res->data, block_size);
+     return res;
 }

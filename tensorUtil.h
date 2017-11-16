@@ -17,7 +17,7 @@ typedef struct {
      float *data;
 } Tensor;
 
-int isShapeEqual(int ndim1, const int *dims1, int ndim2, const int *dims2);
+int isShapeEqual(const Tensor *t1, const Tensor *t2);
 void *cloneMem(const void *src, size_t size, CloneKind kind);
 int computeLength(int ndim, const int *dims);
 Tensor *createTensor(float *data, int ndim, const int *dims);
@@ -30,3 +30,4 @@ Tensor *reshapeTensor(const Tensor *src, int newNdim, const int *newDims);
 Tensor *createReducedTensor(const Tensor *src, int dim);
 void *reduceArgMax(const Tensor *src, Tensor *dst, Tensor *arg, int dim);
 Tensor *multiplyElement(const Tensor *src1, const Tensor *src2, Tensor *dst);
+Tensor *transformBboxSQD(const Tensor *delta, const Tensor *anchor, Tensor *res);

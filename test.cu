@@ -111,6 +111,37 @@ void testMultiplyElement()
      printTensor(dst_host, "%.2f");
 }
 
+void testTransformBboxSQD()
+{
+     float *delta_host_data = (float *)malloc(sizeof(float) * 24);
+     for (int i = 0; i < 24; i++)
+          delta_host_data[i] = i * 0.1;
+     float *anchor_host_data = (float *)cloneMem(delta_host_data, sizeof(float) * 24, H2H);
+     float *delta_cuda_data = (float *)cloneMem(delta_host_data, sizeof(float) * 24, H2D);
+     float *anchor_cuda_data = (float *)cloneMem(anchor_host_data, sizeof(float) * 24, H2D);
+     float *res_cuda_data;
+     cudaMalloc(&res_cuda_data, sizeof(float) * 24);
+
+     int dims[] = {2, 3, 4};
+     Tensor *delta_host = createTensor(delta_host_data, 3, dims);
+     Tensor *anchor_host = createTensor(anchor_host_data, 3, dims);
+     Tensor *delta_cuda = createTensor(delta_cuda_data, 3, dims);
+     Tensor *anchor_cuda = createTensor(anchor_cuda_data, 3, dims);
+     Tensor *res_cuda = createTensor(res_cuda_data, 3, dims);
+
+     printf("delta_host:\n");
+     printTensor(delta_host, "%.6f");
+     printf("anchor_host:\n");
+     printTensor(anchor_host, "%.6f");
+     start =clock();
+     transformBboxSQD(delta_cuda, anchor_cuda, res_cuda);
+     end = clock();
+     printf("transformBboxSQD in %ld\n", end - start);
+     float *res_host_data = (float *)cloneMem(res_cuda_data, sizeof(float) * 24, D2H);
+     Tensor *res_host = createTensor(res_host_data, 3, dims);
+     printTensor(res_host, "%.6f");
+}
+
 int main(int argc, char *argv[])
 {
      init();
@@ -118,4 +149,5 @@ int main(int argc, char *argv[])
      testReshapeTensor();
      testReduceArgMax();
      testMultiplyElement();
+     testTransformBboxSQD();
 }
