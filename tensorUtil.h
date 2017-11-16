@@ -17,11 +17,16 @@ typedef struct {
      float *data;
 } Tensor;
 
-void *cloneMem(void *src, size_t size, const CloneKind kind);
-int computeLength(int ndim, int *dims);
-Tensor *createTensor(float *data, int ndim, int *dims);
-void printTensor(Tensor *tensor, const char *fmt);
-Tensor *sliceTensor(Tensor *src, int dim, int start, int len);
-void *sliceTensorCuda(Tensor *src, Tensor *dst, int dim, int start, int len);
-Tensor *reshapeTensor(Tensor *src, int newNdim, int *newDims);
-void reduceArgMax(Tensor *src, Tensor **dst, Tensor **arg, int dim);
+int isShapeEqual(int ndim1, const int *dims1, int ndim2, const int *dims2);
+void *cloneMem(const void *src, size_t size, CloneKind kind);
+int computeLength(int ndim, const int *dims);
+Tensor *createTensor(float *data, int ndim, const int *dims);
+void printTensor(const Tensor *tensor, const char *fmt);
+Tensor *createSlicedTensor(const Tensor *src, int dim, int start, int len);
+Tensor *sliceTensor(const Tensor *src, Tensor *dst, int dim, int start, int len);
+Tensor *creatSlicedTensorCuda(const Tensor *src, int dim, int start, int len);
+void *sliceTensorCuda(const Tensor *src, Tensor *dst, int dim, int start, int len);
+Tensor *reshapeTensor(const Tensor *src, int newNdim, const int *newDims);
+Tensor *createReducedTensor(const Tensor *src, int dim);
+void *reduceArgMax(const Tensor *src, Tensor *dst, Tensor *arg, int dim);
+Tensor *multiplyElement(const Tensor *src1, const Tensor *src2, Tensor *dst);
