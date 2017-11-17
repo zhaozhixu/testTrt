@@ -1,6 +1,6 @@
 #include <time.h>
+#include <stdio.h>
 #include "tensorUtil.h"
-#include "tensorCuda.h"
 
 clock_t start, end;
 Tensor *t, *tcuda;
